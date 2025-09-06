@@ -1,5 +1,5 @@
 SONARLINT_VERSION = 4.25.1
-SONARLINT_BUILD = 77851
+SONARLINT_BUILD = 77914
 SONARLINT_BASE_URL = https://github.com/SonarSource/sonarlint-vscode/releases/download
 
 # Platforms
