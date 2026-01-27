@@ -1,9 +1,6 @@
-#!/usr/bin/env node
-
 import { spawn } from 'node:child_process'
 import { readFile, appendFile } from 'node:fs/promises'
 import path from 'node:path'
-import { parseArgs as utilParseArgs } from 'node:util'
 
 class LSPClient {
     constructor(debug = false) {
@@ -56,8 +53,9 @@ class LSPClient {
         this.buffer += data.toString()
         this.log('recv', data.toString().trim())
 
+        // LSP header can include Content-Type after Content-Length
         let match
-        while ((match = this.buffer.match(/Content-Length: (\d+)\r\n\r\n/))) {
+        while ((match = this.buffer.match(/Content-Length: (\d+)\r\n(?:[^\r]*\r\n)*\r\n/))) {
             const length = parseInt(match[1])
             const start = match.index + match[0].length
 
@@ -80,7 +78,7 @@ class LSPClient {
                     }
                 }
             } catch (e) {
-                console.error('Parse error:', e.message)
+                this.log('parse-error', `${e.message}: ${content.slice(0, 100)}`)
             }
         }
     }
@@ -101,25 +99,21 @@ class SonarLintClient {
         this.java = options.java || 'java'
         this.jar = options.sonarlintLsp
         this.analyzers = options.analyzers || []
-        this.enabledRules = options.enabledRules
         this.disabledRules = options.disabledRules
         this.rules = []
-        this.diagnostics = new Set()
         this.errors = false
-        this.pending = new Set()
-        this.resolver = null
 
         this.lsp.onRequest('workspace/configuration', () => {
             const rules = {}
-            for (const rule of this.rules) {
-                rules[rule] = { level: this.disabledRules?.includes(rule) ? 'off' :
-                    this.enabledRules ? (this.enabledRules.includes(rule) ? 'on' : 'off') : 'on' }
+            if (this.disabledRules) {
+                for (const rule of this.disabledRules) {
+                    rules[rule] = { level: 'off' }
+                }
             }
             return [{ rules }]
         })
 
         this.lsp.onRequest('sonarlint/isOpenInEditor', () => true)
-        this.lsp.onNotification('textDocument/publishDiagnostics', params => this.handleDiagnostics(params))
     }
 
     async start() {
@@ -133,106 +127,41 @@ class SonarLintClient {
         this.rules = Object.values(response || {}).flat().map(rule => rule.key)
     }
 
-    handleDiagnostics(params) {
-        const file = params.uri.replace('file://', '')
-
-        for (const diag of params.diagnostics) {
-            const line = diag.range.start.line + 1
-            const col = diag.range.start.character + 1
-            const msg = `${file}:${line}:${col} - ${diag.message} (${diag.code})`
-
-            if (!this.diagnostics.has(msg)) {
-                this.diagnostics.add(msg)
-                console.log(msg)
-                this.errors = true
-            }
-        }
-
-        this.pending.delete(file)
-        if (this.pending.size === 0 && this.resolver) {
-            this.resolver()
-        }
-    }
-
-    async analyzeFiles(files, options = {}) {
-        this.enabledRules = options.rules
-        this.disabledRules = options.disableRules
-        this.diagnostics.clear()
-        this.pending.clear()
+    async analyzeFiles(files) {
         this.errors = false
+        const pending = new Map()
+        const seen = new Set()
 
-        for (const file of files) {
-            const content = await readFile(file, 'utf8')
-            const uri = `file://${path.resolve(file)}`
-            this.pending.add(uri.replace('file://', ''))
+        this.lsp.onNotification('textDocument/publishDiagnostics', params => {
+            const file = params.uri.replace('file://', '')
+            for (const diag of params.diagnostics) {
+                const msg = `${file}:${diag.range.start.line + 1}:${diag.range.start.character + 1} - ${diag.message} (${diag.code})`
+                if (!seen.has(msg)) {
+                    seen.add(msg)
+                    console.log(msg)
+                    this.errors = true
+                }
+            }
+            pending.get(file)?.()
+        })
 
+        await Promise.all(files.map(async file => {
+            const filePath = path.resolve(file)
+            const done = new Promise(resolve => pending.set(filePath, resolve))
             this.lsp.sendNotification('textDocument/didOpen', {
-                textDocument: { uri, text: content, languageId: 'javascript', version: 1 }
+                textDocument: {
+                    uri: `file://${filePath}`,
+                    text: await readFile(file, 'utf8'),
+                    languageId: 'javascript',
+                    version: 1
+                }
             })
-        }
-
-        if (this.pending.size > 0) {
-            await new Promise(resolve => { this.resolver = resolve })
-        }
+            await done
+        }))
     }
 
-    async listRules() { return this.rules }
-    async stop() { await this.lsp.stop() }
+    listRules() { return this.rules }
+    stop() { return this.lsp.stop() }
 }
 
-async function main() {
-    const { values, positionals } = utilParseArgs({
-        options: {
-            debug: { type: 'boolean', default: false },
-            java: { type: 'string', default: 'java' },
-            analyzers: { type: 'string', multiple: true },
-            rules: { type: 'string' },
-            'sonarlint-lsp': { type: 'string' },
-            'disable-rules': { type: 'string' },
-        },
-        allowPositionals: true
-    })
-
-    const [command, ...files] = positionals
-
-    if (!command || !['list-rules', 'analyze'].includes(command)) {
-        console.error('Error: Use "list-rules" or "analyze"')
-        process.exit(1)
-    }
-
-    if (command === 'analyze' && files.length === 0) {
-        console.error('Error: Files required for analyze')
-        process.exit(1)
-    }
-
-    const client = new SonarLintClient({
-        debug: values.debug,
-        java: values.java,
-        sonarlintLsp: values['sonarlint-lsp'] || './sonarlint-deps/server/sonarlint-lsp.jar',
-        analyzers: values.analyzers?.length ? values.analyzers : ['./sonarlint-deps/analyzers/sonarjs.jar'],
-        enabledRules: values.rules?.split(','),
-        disabledRules: values['disable-rules']?.split(','),
-    })
-
-    try {
-        await client.start()
-
-        if (command === 'list-rules') {
-            console.log((await client.listRules()).join(','))
-        } else {
-            await client.analyzeFiles(files, {
-                rules: client.enabledRules,
-                disableRules: client.disabledRules,
-            })
-        }
-
-        await client.stop()
-        process.exit(client.errors ? 1 : 0)
-    } catch (error) {
-        console.error('Error:', error.message)
-        await client.stop()
-        process.exit(1)
-    }
-}
-
-main().catch(console.error)
+export { SonarLintClient }
