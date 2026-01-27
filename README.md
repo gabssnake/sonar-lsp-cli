@@ -26,15 +26,15 @@ That's it. No configuration files, no complex setup, no network required after f
 
 ## Installation
 
-```bash
-npm install -g sonarx
-```
-
-Or run directly without installing:
+From source (recommended for now):
 
 ```bash
-npx sonarx src/*.js
+git clone https://github.com/user/sonar-lsp-cli
+cd sonar-lsp-cli
+npm link
 ```
+
+This creates global `snr` and `sonarx` commands. To uninstall: `npm unlink -g sonarx`
 
 ## Usage
 
