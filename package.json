@@ -1,0 +1,34 @@
+{
+  "name": "sonarx",
+  "version": "0.1.0",
+  "description": "Lightweight CLI for SonarQube JavaScript/TypeScript analysis",
+  "type": "module",
+  "bin": {
+    "snr": "./cli.js",
+    "sonarx": "./cli.js"
+  },
+  "scripts": {
+    "test": "node --test test.js"
+  },
+  "files": [
+    "cli.js",
+    "scan.js"
+  ],
+  "keywords": [
+    "sonarqube",
+    "sonarlint",
+    "linter",
+    "javascript",
+    "typescript",
+    "static-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
