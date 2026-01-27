@@ -3,7 +3,7 @@
 /!\ This is not a SonarSource project, use at your own risk /!\
 
 A minimal CLI tool that brings SonarQube's JavaScript analysis to the command line.
-It works locally and mostly without dependencies besides Node.js.
+It works locally and without dependencies besides Node.js.
 
 ## Why
 
@@ -17,38 +17,82 @@ Downloads the platform-specific SonarQube VSCode extension on first use, which i
 
 No Java installation is required on macOS and Linux, since it uses the bundled JVM when possible.
 
-That's it. No configuration files, no complex setup, no network required.
+That's it. No configuration files, no complex setup, no network required after first run.
 
 ## Requirements
 
-- Node.js for the LSP client
-- Make, curl, unzip for setup
+- Node.js 18+
+- curl, unzip (for first-run setup)
+
+## Installation
+
+```bash
+npm install -g sonarx
+```
+
+Or run directly without installing:
+
+```bash
+npx sonarx src/*.js
+```
+
+## Usage
+
+```bash
+# Analyze files (globs work, folders don't)
+snr src/*.js
+snr "src/**/*.ts"
+
+# Disable specific rules
+snr --disable-rules javascript:S3504,javascript:S108 src/*.js
+
+# List all 600+ available rules
+snr --list-rules
+
+# Debug mode
+snr --debug src/*.js
+```
+
+Both `snr` and `sonarx` commands are available.
+
+## Options
+
+| Option | Description |
+| --- | --- |
+| `--disable-rules` | Comma-separated list of rules to disable |
+| `--list-rules` | List all available rules |
+| `-d, --debug` | Enable debug logging to sonarlint-debug.log |
+| `-h, --help` | Show help |
+
+## Example output
+
+```
+$ snr test.js
+test.js:3:1 - Unexpected var, use let or const instead. (javascript:S3504)
+test.js:8:5 - Empty block statement. (javascript:S108)
+```
+
+Exit code is 1 if issues are found, 0 otherwise.
+
+## Using with Make
+
+The Makefile provides convenient shortcuts:
+
+```bash
+make analyze src/*.js    # Analyze files
+make rules               # List rules
+make debug src/*.js      # Analyze with debug logging
+make test                # Analyze test samples
+make clean               # Remove cached dependencies
+```
 
 ## Limitations
 
 This tool uses SonarQube's internal LSP, which is equivalent to what you'd see in your IDE. However, it doesn't include SonarQube's full analysis features like cross-file analysis and advanced rules that require full project context. For complete coverage, use this alongside your regular SonarQube setup.
 
-## Usage
+## Cache location
 
-```bash
-# Auto-setup and analyze files. Globs are fine but not folders.
-make analyze file.js
-make analyze src/*.js
-
-# List all 600+ available rules for JS/TS
-make rules
-
-# Debug mode for troubleshooting
-make debug file.js
-```
-
-## Example Output
-
-```bash
-$ make analyze test.js
-test.js:3:1 - Unexpected var, use let or const instead. (javascript:S3504)
-test.js:8:5 - Empty block statement. (javascript:S108)
-```
+Dependencies are cached in `~/.sonarx/` (about 200MB). Delete this folder to force re-download.
 
 ## Credits
 
