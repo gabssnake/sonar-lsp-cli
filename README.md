@@ -74,18 +74,6 @@ test.js:8:5 - Empty block statement. (javascript:S108)
 
 Exit code is 1 if issues are found, 0 otherwise.
 
-## Using with Make
-
-The Makefile provides convenient shortcuts:
-
-```bash
-make analyze src/*.js    # Analyze files
-make rules               # List rules
-make debug src/*.js      # Analyze with debug logging
-make test                # Analyze test samples
-make clean               # Remove cached dependencies
-```
-
 ## Limitations
 
 This tool uses SonarQube's internal LSP, which is equivalent to what you'd see in your IDE. However, it doesn't include SonarQube's full analysis features like cross-file analysis and advanced rules that require full project context. For complete coverage, use this alongside your regular SonarQube setup.
