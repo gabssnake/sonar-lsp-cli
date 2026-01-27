@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
-import { execSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { exec } from 'node:child_process'
+import { access, mkdir, readdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { parseArgs } from 'node:util'
+import { parseArgs, promisify } from 'node:util'
 import { SonarLintClient } from './scan.js'
+
+const execAsync = promisify(exec)
 
 const VERSION = '4.40.0'
 const BUILD = '79805'
@@ -20,26 +22,32 @@ function getPlatform() {
     return null
 }
 
-function findJava(dir) {
+async function findJava(dir) {
     // recursively find java executable in jre directory
-    const search = (d) => {
-        for (const entry of readdirSync(d, { withFileTypes: true })) {
-            const full = join(d, entry.name)
-            if (entry.isDirectory()) {
-                const found = search(full)
-                if (found) return found
-            } else if (entry.name === 'java') {
-                return full
-            }
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name)
+        if (entry.isDirectory()) {
+            const found = await findJava(full)
+            if (found) return found
+        } else if (entry.name === 'java') {
+            return full
         }
-        return null
     }
-    return search(dir)
+    return null
 }
 
-function setup() {
+async function exists(path) {
+    try {
+        await access(path)
+        return true
+    } catch {
+        return false
+    }
+}
+
+async function setup() {
     const lspJar = join(CACHE_DIR, 'server', 'sonarlint-ls.jar')
-    if (existsSync(lspJar)) return
+    if (await exists(lspJar)) return
 
     const platform = getPlatform()
     const vsixName = platform
@@ -48,7 +56,7 @@ function setup() {
     const url = `${BASE_URL}/${VERSION}%2B${BUILD}/${vsixName}`
 
     console.error(`Downloading ${vsixName}...`)
-    mkdirSync(CACHE_DIR, { recursive: true })
+    await mkdir(CACHE_DIR, { recursive: true })
 
     const commands = [
         `curl -fsSL "${url}" -o "${join(CACHE_DIR, 'sonar.zip')}"`,
@@ -64,14 +72,14 @@ function setup() {
 
     commands.push(`rm -rf "${join(CACHE_DIR, 'sonar.zip')}" "${join(CACHE_DIR, 'tmp')}"`)
 
-    execSync(commands.join(' && '), { stdio: 'inherit' })
+    await execAsync(commands.join(' && '))
     console.error('Setup complete.')
 }
 
-function getJavaPath() {
+async function getJavaPath() {
     const jreDir = join(CACHE_DIR, 'jre')
-    if (existsSync(jreDir)) {
-        const java = findJava(jreDir)
+    if (await exists(jreDir)) {
+        const java = await findJava(jreDir)
         if (java) return java
     }
     return 'java'
@@ -105,11 +113,11 @@ Examples:
         process.exit(0)
     }
 
-    setup()
+    await setup()
 
     const client = new SonarLintClient({
         debug: values.debug,
-        java: getJavaPath(),
+        java: await getJavaPath(),
         sonarlintLsp: join(CACHE_DIR, 'server', 'sonarlint-ls.jar'),
         analyzers: [join(CACHE_DIR, 'analyzers', 'sonarjs.jar')],
         disabledRules: values['disable-rules']?.split(','),

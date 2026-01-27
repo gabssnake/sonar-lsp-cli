@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 
-import { execSync, spawn } from 'node:child_process'
-import { strictEqual, ok, match } from 'node:assert'
+import { spawn } from 'node:child_process'
+import { strictEqual, ok } from 'node:assert'
 import { test } from 'node:test'
 
-const run = (args, { timeout = 60000 } = {}) => {
+const run = (args) => {
     return new Promise((resolve, reject) => {
-        const proc = spawn('node', ['cli.js', ...args], {
-            timeout,
-            stdio: ['pipe', 'pipe', 'pipe']
-        })
+        const proc = spawn('node', ['cli.js', ...args], { stdio: ['pipe', 'pipe', 'pipe'] })
         let stdout = ''
         let stderr = ''
         proc.stdout.on('data', d => stdout += d)
