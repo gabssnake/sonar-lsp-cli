@@ -29,7 +29,7 @@ That's it. No configuration files, no complex setup, no network required after f
 From source (recommended for now):
 
 ```bash
-git clone https://github.com/user/sonar-lsp-cli
+git clone https://github.com/gabssnake/sonar-lsp-cli
 cd sonar-lsp-cli
 npm link
 ```

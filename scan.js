@@ -49,37 +49,54 @@ class LSPClient {
         }
     }
 
+    handleResponse(message) {
+        const { resolve, reject } = this.responseHandlers.get(message.id)
+        this.responseHandlers.delete(message.id)
+        if (message.error) {
+            reject(new Error(message.error.message))
+        } else {
+            resolve(message.result)
+        }
+    }
+
+    handleMethod(message) {
+        const handlers = message.id ? this.requestHandlers : this.notificationHandlers
+        const handler = handlers.get(message.method)
+        if (!handler) return
+        const result = handler(message.params)
+        if (message.id) {
+            this.send({ jsonrpc: '2.0', id: message.id, result })
+        }
+    }
+
+    handleMessage(content) {
+        try {
+            const message = JSON.parse(content)
+            if (message.id && this.responseHandlers.has(message.id)) {
+                this.handleResponse(message)
+            } else if (message.method) {
+                this.handleMethod(message)
+            }
+        } catch (e) {
+            this.log('parse-error', `${e.message}: ${content.slice(0, 100)}`)
+        }
+    }
+
     handleData(data) {
         this.buffer += data.toString()
         this.log('recv', data.toString().trim())
 
         // LSP header can include Content-Type after Content-Length
+        const headerPattern = /Content-Length: (\d+)\r\n(?:[^\r]*\r\n)*\r\n/
         let match
-        while ((match = this.buffer.match(/Content-Length: (\d+)\r\n(?:[^\r]*\r\n)*\r\n/))) {
-            const length = parseInt(match[1])
+        while ((match = headerPattern.exec(this.buffer))) {
+            const length = Number.parseInt(match[1], 10)
             const start = match.index + match[0].length
-
             if (this.buffer.length < start + length) break
 
             const content = this.buffer.slice(start, start + length)
             this.buffer = this.buffer.slice(start + length)
-
-            try {
-                const message = JSON.parse(content)
-                if (message.id && this.responseHandlers.has(message.id)) {
-                    const { resolve, reject } = this.responseHandlers.get(message.id)
-                    this.responseHandlers.delete(message.id)
-                    message.error ? reject(new Error(message.error.message)) : resolve(message.result)
-                } else if (message.method) {
-                    const handler = message.id ? this.requestHandlers.get(message.method) : this.notificationHandlers.get(message.method)
-                    if (handler) {
-                        const result = handler(message.params)
-                        if (message.id) this.send({ jsonrpc: '2.0', id: message.id, result })
-                    }
-                }
-            } catch (e) {
-                this.log('parse-error', `${e.message}: ${content.slice(0, 100)}`)
-            }
+            this.handleMessage(content)
         }
     }
 

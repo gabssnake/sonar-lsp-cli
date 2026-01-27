@@ -54,7 +54,7 @@ test('--disable-rules excludes specified rules', async () => {
 })
 
 test('--disable-rules with multiple rules', async () => {
-    const { code, stdout } = await run([
+    const { code } = await run([
         '--disable-rules', 'javascript:S3504,javascript:S108,javascript:S2589',
         'test-samples/test-issues.js'
     ])
@@ -68,6 +68,6 @@ test('exits 1 with no files specified', async () => {
 })
 
 test('handles non-existent file', async () => {
-    const { code, stderr } = await run(['nonexistent.js'])
+    const { code } = await run(['nonexistent.js'])
     strictEqual(code, 1)
 })

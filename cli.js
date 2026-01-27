@@ -145,4 +145,4 @@ Examples:
     }
 }
 
-main().catch(console.error)
+await main()
