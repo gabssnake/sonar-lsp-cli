@@ -34,21 +34,21 @@ test('--list-rules returns rules', async () => {
 })
 
 test('analyzes file and finds issues', async () => {
-    const { code, stdout } = await run(['test-samples/test-simple.js'])
+    const { code, stdout } = await run(['fixtures/test-simple.js'])
     strictEqual(code, 1, 'should exit 1 when issues found')
     ok(stdout.includes('javascript:S3504'), 'should find var usage issue')
     ok(stdout.includes('test-simple.js:1:1'), 'should include file location')
 })
 
 test('analyzes multiple files', async () => {
-    const { code, stdout } = await run(['test-samples/test-simple.js', 'test-samples/test-issues.js'])
+    const { code, stdout } = await run(['fixtures/test-simple.js', 'fixtures/test-issues.js'])
     strictEqual(code, 1)
     ok(stdout.includes('test-simple.js'))
     ok(stdout.includes('test-issues.js'))
 })
 
 test('--disable-rules excludes specified rules', async () => {
-    const { code, stdout } = await run(['--disable-rules', 'javascript:S3504', 'test-samples/test-simple.js'])
+    const { code, stdout } = await run(['--disable-rules', 'javascript:S3504', 'fixtures/test-simple.js'])
     strictEqual(code, 0, 'should exit 0 when no issues after disabling rule')
     ok(!stdout.includes('S3504'), 'should not report disabled rule')
 })
@@ -56,7 +56,7 @@ test('--disable-rules excludes specified rules', async () => {
 test('--disable-rules with multiple rules', async () => {
     const { code } = await run([
         '--disable-rules', 'javascript:S3504,javascript:S108,javascript:S2589',
-        'test-samples/test-issues.js'
+        'fixtures/test-issues.js'
     ])
     strictEqual(code, 0, 'should exit 0 when all triggered rules are disabled')
 })
