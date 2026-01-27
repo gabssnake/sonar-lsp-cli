@@ -26,15 +26,17 @@ That's it. No configuration files, no complex setup, no network required after f
 
 ## Installation
 
-From source (recommended for now):
+I'm not ready to publish this as a package in npm, e.g. usage with npx.
+
+You can install from source easily:
 
 ```bash
-git clone https://github.com/gabssnake/sonar-lsp-cli
-cd sonar-lsp-cli
+git clone https://github.com/gabssnake/sonar-lsp-cli ~/.sonar-lsp-cli
+cd ~/.sonar-lsp-cli
 npm link
 ```
 
-This creates global `snr` and `sonarx` commands. To uninstall: `npm unlink -g sonarx`
+This creates global `sonarx` and `snr` commands. To uninstall: `npm unlink -g sonarx`
 
 ## Usage
 
@@ -53,7 +55,7 @@ snr --list-rules
 snr --debug src/*.js
 ```
 
-Both `snr` and `sonarx` commands are available.
+Both `sonarx` and `snr` commands are available.
 
 ## Options
 
