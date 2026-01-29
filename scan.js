@@ -2,6 +2,24 @@ import { spawn } from 'node:child_process'
 import { readFile, appendFile } from 'node:fs/promises'
 import path from 'node:path'
 
+function detectLanguage(filePath) {
+    const ext = path.extname(filePath).toLowerCase()
+    const map = {
+        '.js': 'javascript',
+        '.jsx': 'javascriptreact',
+        '.ts': 'typescript',
+        '.tsx': 'typescriptreact',
+        '.py': 'python',
+        '.java': 'java',
+        '.html': 'html',
+        '.htm': 'html',
+        '.css': 'css',
+        '.scss': 'scss',
+        '.less': 'less',
+    }
+    return map[ext] || 'plaintext'
+}
+
 class LSPClient {
     constructor(debug = false) {
         this.debug = debug
@@ -169,7 +187,7 @@ class SonarLintClient {
                 textDocument: {
                     uri: `file://${filePath}`,
                     text: await readFile(file, 'utf8'),
-                    languageId: 'javascript',
+                    languageId: detectLanguage(filePath),
                     version: 1
                 }
             })
