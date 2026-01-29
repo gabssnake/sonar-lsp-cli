@@ -119,7 +119,12 @@ Examples:
         debug: values.debug,
         java: await getJavaPath(),
         sonarlintLsp: join(CACHE_DIR, 'server', 'sonarlint-ls.jar'),
-        analyzers: [join(CACHE_DIR, 'analyzers', 'sonarjs.jar')],
+        analyzers: [
+            join(CACHE_DIR, 'analyzers', 'sonarjs.jar'),
+            join(CACHE_DIR, 'analyzers', 'sonarpython.jar'),
+            join(CACHE_DIR, 'analyzers', 'sonarjava.jar'),
+            join(CACHE_DIR, 'analyzers', 'sonarhtml.jar'),
+        ],
         disabledRules: values['disable-rules']?.split(','),
     })
 
