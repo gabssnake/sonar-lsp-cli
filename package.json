@@ -1,7 +1,7 @@
 {
   "name": "sonarx",
   "version": "0.1.0",
-  "description": "Lightweight CLI for SonarQube JavaScript/TypeScript analysis",
+  "description": "Lightweight CLI for SonarQube multi-language analysis (JS, TS, Python, Java, HTML, CSS)",
   "type": "module",
   "bin": {
     "snr": "./cli.js",
@@ -20,6 +20,10 @@
     "linter",
     "javascript",
     "typescript",
+    "python",
+    "java",
+    "html",
+    "css",
     "static-analysis"
   ],
   "author": "",
