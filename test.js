@@ -29,8 +29,10 @@ test('--list-rules returns rules', async () => {
     strictEqual(code, 0)
     ok(stdout.includes('javascript:'))
     ok(stdout.includes('typescript:'))
-    // should have many rules
-    ok(stdout.split('\n').length > 100)
+    ok(stdout.includes('python:'))
+    ok(stdout.includes('java:'))
+    // should have many rules across all languages
+    ok(stdout.split('\n').length > 500)
 })
 
 test('analyzes file and finds issues', async () => {
@@ -70,4 +72,40 @@ test('exits 1 with no files specified', async () => {
 test('handles non-existent file', async () => {
     const { code } = await run(['nonexistent.js'])
     strictEqual(code, 1)
+})
+
+test('analyzes Python files', async () => {
+    const { code, stdout } = await run(['fixtures/test-simple.py'])
+    strictEqual(code, 1, 'should find issues in Python file')
+    ok(stdout.includes('test-simple.py'), 'should reference Python file')
+})
+
+test('analyzes Java files', async () => {
+    const { code, stdout } = await run(['fixtures/test-simple.java'])
+    strictEqual(code, 1, 'should find issues in Java file')
+    ok(stdout.includes('test-simple.java'), 'should reference Java file')
+})
+
+test('analyzes HTML files', async () => {
+    const { code, stdout } = await run(['fixtures/test-simple.html'])
+    strictEqual(code, 1, 'should find issues in HTML file')
+    ok(stdout.includes('test-simple.html'), 'should reference HTML file')
+})
+
+test('analyzes CSS files', async () => {
+    const { code, stdout } = await run(['fixtures/test-simple.css'])
+    strictEqual(code, 1, 'should find issues in CSS file')
+    ok(stdout.includes('test-simple.css'), 'should reference CSS file')
+})
+
+test('analyzes mixed language files', async () => {
+    const { code, stdout } = await run([
+        'fixtures/test-simple.js',
+        'fixtures/test-simple.py',
+        'fixtures/test-simple.java'
+    ])
+    strictEqual(code, 1)
+    ok(stdout.includes('test-simple.js'))
+    ok(stdout.includes('test-simple.py'))
+    ok(stdout.includes('test-simple.java'))
 })
