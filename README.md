@@ -2,12 +2,13 @@
 
 /!\ This is not a SonarSource project, use at your own risk /!\
 
-A minimal CLI tool that brings SonarQube's JavaScript analysis to the command line.
-It works locally and without dependencies besides Node.js.
+A minimal CLI tool that brings SonarQube's code analysis to the command line.
+Supports JavaScript, TypeScript, Python, Java, HTML, and CSS.
+Works locally and without dependencies besides Node.js.
 
 ## Why
 
-SonarQube has 600+ professional-grade rules for JavaScript and TypeScript used by millions of developers, but it's typically only available in IDEs or requires a SonarQube instance or SaaS.
+SonarQube has thousands of professional-grade rules across JavaScript, TypeScript, Python, Java, HTML, and CSS used by millions of developers, but it's typically only available in IDEs or requires a SonarQube instance or SaaS.
 
 This tool makes SonarQube's powerful analysis available as a lightweight, offline command-line tool.
 
@@ -44,11 +45,16 @@ This creates global `sonarx` and `snr` commands. To uninstall: `npm unlink -g so
 # Analyze files (globs work, folders don't)
 snr src/*.js
 snr "src/**/*.ts"
+snr "src/**/*.py"
+snr "src/**/*.java"
+
+# Mixed languages work naturally
+snr src/*.js src/*.py src/*.html
 
 # Disable specific rules
-snr --disable-rules javascript:S3504,javascript:S108 src/*.js
+snr --disable-rules javascript:S3504,python:S1135 src/*.js src/*.py
 
-# List all 600+ available rules
+# List all available rules (2000+)
 snr --list-rules
 
 # Debug mode
@@ -69,9 +75,10 @@ Both `sonarx` and `snr` commands are available.
 ## Example output
 
 ```
-$ snr test.js
+$ snr test.js test.py
 test.js:3:1 - Unexpected var, use let or const instead. (javascript:S3504)
 test.js:8:5 - Empty block statement. (javascript:S108)
+test.py:2:5 - Remove this TODO comment. (python:S1135)
 ```
 
 Exit code is 1 if issues are found, 0 otherwise.
@@ -79,6 +86,15 @@ Exit code is 1 if issues are found, 0 otherwise.
 ## Limitations
 
 This tool uses SonarQube's internal LSP, which is equivalent to what you'd see in your IDE. However, it doesn't include SonarQube's full analysis features like cross-file analysis and advanced rules that require full project context. For complete coverage, use this alongside your regular SonarQube setup.
+
+## Supported languages
+
+- JavaScript (.js, .jsx)
+- TypeScript (.ts, .tsx)
+- Python (.py)
+- Java (.java)
+- HTML (.html, .htm)
+- CSS (.css, .scss, .less)
 
 ## Cache location
 
