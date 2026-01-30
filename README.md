@@ -92,7 +92,7 @@ This tool uses SonarQube's internal LSP, which is equivalent to what you'd see i
 - JavaScript (.js, .jsx)
 - TypeScript (.ts, .tsx)
 - Python (.py)
-- Java (.java)
+- Java (.java) - Note: Java analyzer has longer initialization time
 - HTML (.html, .htm)
 - CSS (.css, .scss, .less)
 
