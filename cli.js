@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { exec } from 'node:child_process'
-import { access, mkdir, readdir } from 'node:fs/promises'
+import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseArgs, promisify } from 'node:util'
@@ -47,7 +47,11 @@ async function exists(path) {
 
 async function setup() {
     const lspJar = join(CACHE_DIR, 'server', 'sonarlint-ls.jar')
-    if (await exists(lspJar)) return
+    const versionFile = join(CACHE_DIR, 'version')
+    const installedVersion = await exists(versionFile)
+        ? (await readFile(versionFile, 'utf8')).trim()
+        : null
+    if (await exists(lspJar) && installedVersion === VERSION) return
 
     const platform = getPlatform()
     const vsixName = platform
@@ -59,6 +63,7 @@ async function setup() {
     await mkdir(CACHE_DIR, { recursive: true })
 
     const commands = [
+        `rm -rf "${join(CACHE_DIR, 'analyzers')}" "${join(CACHE_DIR, 'server')}" "${join(CACHE_DIR, 'jre')}"`,
         `curl -fsSL "${url}" -o "${join(CACHE_DIR, 'sonar.zip')}"`,
         `unzip -q "${join(CACHE_DIR, 'sonar.zip')}" -d "${join(CACHE_DIR, 'tmp')}"`,
         `mv "${join(CACHE_DIR, 'tmp', 'extension', 'analyzers')}" "${CACHE_DIR}"`,
@@ -73,6 +78,7 @@ async function setup() {
     commands.push(`rm -rf "${join(CACHE_DIR, 'sonar.zip')}" "${join(CACHE_DIR, 'tmp')}"`)
 
     await execAsync(commands.join(' && '))
+    await writeFile(versionFile, VERSION)
     console.error('Setup complete.')
 }
 
