@@ -9,8 +9,8 @@ import { SonarLintClient } from './scan.js'
 
 const execAsync = promisify(exec)
 
-const VERSION = '4.40.0'
-const BUILD = '79805'
+const VERSION = '5.4.0'
+const BUILD = '80395'
 const BASE_URL = 'https://github.com/SonarSource/sonarlint-vscode/releases/download'
 const CACHE_DIR = join(homedir(), '.sonarx')
 
