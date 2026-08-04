@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process'
 import { readFile, appendFile } from 'node:fs/promises'
 import path from 'node:path'
 
+const ANALYSIS_TIMEOUT_MS = 60000
+
 function detectLanguage(filePath) {
     const ext = path.extname(filePath).toLowerCase()
     const map = {
@@ -25,7 +27,7 @@ class LSPClient {
         this.debug = debug
         this.process = null
         this.messageId = 0
-        this.buffer = ''
+        this.buffer = Buffer.alloc(0)
         this.responseHandlers = new Map()
         this.requestHandlers = new Map()
         this.notificationHandlers = new Map()
@@ -101,19 +103,31 @@ class LSPClient {
     }
 
     handleData(data) {
-        this.buffer += data.toString()
+        // Accumulate raw bytes. Content-Length is a byte count, so all framing
+        // must use byte offsets: decoding to a string first makes multi-byte
+        // characters (e.g. a "→" in a server log message) drift every offset
+        // and silently swallow later messages.
+        this.buffer = Buffer.concat([this.buffer, data])
         this.log('recv', data.toString().trim())
 
-        // LSP header can include Content-Type after Content-Length
-        const headerPattern = /Content-Length: (\d+)\r\n(?:[^\r]*\r\n)*\r\n/
-        let match
-        while ((match = headerPattern.exec(this.buffer))) {
+        while (true) {
+            const headerEnd = this.buffer.indexOf('\r\n\r\n')
+            if (headerEnd === -1) break
+
+            const header = this.buffer.toString('ascii', 0, headerEnd)
+            const match = /Content-Length: (\d+)/i.exec(header)
+            if (!match) {
+                // Unframeable header, drop it so the stream cannot get stuck.
+                this.buffer = this.buffer.subarray(headerEnd + 4)
+                continue
+            }
+
             const length = Number.parseInt(match[1], 10)
-            const start = match.index + match[0].length
+            const start = headerEnd + 4
             if (this.buffer.length < start + length) break
 
-            const content = this.buffer.slice(start, start + length)
-            this.buffer = this.buffer.slice(start + length)
+            const content = this.buffer.toString('utf8', start, start + length)
+            this.buffer = this.buffer.subarray(start + length)
             this.handleMessage(content)
         }
     }
@@ -191,7 +205,18 @@ class SonarLintClient {
                     version: 1
                 }
             })
-            await done
+
+            // Never block forever: if diagnostics never arrive for this file,
+            // warn and move on so one file cannot freeze the whole batch.
+            let timer
+            const timeout = new Promise(resolve => {
+                timer = setTimeout(() => {
+                    console.error(`Warning: analysis timed out for ${file}`)
+                    resolve()
+                }, ANALYSIS_TIMEOUT_MS)
+            })
+            await Promise.race([done, timeout])
+            clearTimeout(timer)
         }))
     }
 
